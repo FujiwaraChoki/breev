@@ -3,11 +3,16 @@
   import { goto } from "$app/navigation";
   import { readDir, readTextFile, exists } from "@tauri-apps/plugin-fs";
   import { homeDir, join } from "@tauri-apps/api/path";
+  import { Command } from "@tauri-apps/plugin-shell";
   import confetti from "canvas-confetti";
   import Settings, { type AppSettings } from "$lib/Settings.svelte";
+  import MagicWandSparkle from "$lib/MagicWandSparkle.svelte";
 
   let appReady = $state(false);
   let settingsOpen = $state(false);
+  let generating = $state(false);
+  let generatingElapsed = $state(0);
+  let generatingTimer: ReturnType<typeof setInterval> | null = null;
   let appSettings: AppSettings = $state({
     showDreamReminder: true,
     dreamReminderText: "",
@@ -240,6 +245,38 @@
     }
   }
 
+  async function generateSummary() {
+    if (generating) return;
+    generating = true;
+    generatingElapsed = 0;
+    error = "";
+
+    // Start timer
+    generatingTimer = setInterval(() => {
+      generatingElapsed += 1;
+    }, 1000);
+
+    try {
+      const command = Command.create("claude", ["--dangerously-skip-permissions", "-p", "Run /breev"]);
+      const result = await command.execute();
+
+      if (result.code === 0) {
+        await loadAvailableDates();
+      } else {
+        error = "Failed to generate summary.";
+      }
+    } catch (e) {
+      console.error("Failed to generate summary:", e);
+      error = "Failed to generate summary. Make sure Claude Code is installed.";
+    } finally {
+      if (generatingTimer) {
+        clearInterval(generatingTimer);
+        generatingTimer = null;
+      }
+      generating = false;
+    }
+  }
+
   onMount(() => {
     // Check if onboarding is completed
     if (localStorage.getItem("breev-onboarded") !== "true") {
@@ -278,6 +315,9 @@
           {/each}
         </select>
       {/if}
+      <button class="generate-btn" onclick={generateSummary} aria-label="Generate summary" disabled={generating}>
+        <MagicWandSparkle size={18} />
+      </button>
       <button class="settings-btn" onclick={() => settingsOpen = true} aria-label="Settings">
         <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <g fill="none">
@@ -529,6 +569,16 @@
   onSettingsChange={handleSettingsChange}
   currentSettings={appSettings}
 />
+
+{#if generating}
+  <div class="generating-overlay">
+    <div class="generating-content">
+      <MagicWandSparkle size={48} class="pulse" />
+      <p>Brewing your summary...</p>
+      <p class="elapsed-time">{Math.floor(generatingElapsed / 60)}:{(generatingElapsed % 60).toString().padStart(2, '0')}</p>
+    </div>
+  </div>
+{/if}
 {/if}
 
 <style>
@@ -946,5 +996,81 @@
   .ai-btn:hover {
     border-color: #1a1a1a;
     color: #1a1a1a;
+  }
+
+  /* Generate button */
+  .generate-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s;
+    opacity: 0.6;
+  }
+
+  .generate-btn:hover {
+    opacity: 1;
+  }
+
+  .generate-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+  }
+
+  /* Generating overlay */
+  .generating-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(250, 246, 241, 0.95);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fade-in 0.2s ease;
+  }
+
+  .generating-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .generating-content p {
+    font-size: 1rem;
+    color: #666;
+    font-style: italic;
+  }
+
+  :global(.pulse) {
+    animation: pulse-opacity 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-opacity {
+    0%, 100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .elapsed-time {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 1.25rem;
+    color: #888;
+    margin-top: 8px;
   }
 </style>

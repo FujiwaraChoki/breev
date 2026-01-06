@@ -32,11 +32,31 @@
 
 ## Installation
 
+> **Note:** Breev is currently **macOS only**.
+
 ### Prerequisites
 
-- [Rust](https://rustup.rs/) toolchain
-- [Bun](https://bun.sh/) package manager (or npm/pnpm)
-- macOS, Windows, or Linux
+- macOS (Apple Silicon or Intel)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) - Required for generating summaries
+- [Rust](https://rustup.rs/) toolchain (for development)
+- [Bun](https://bun.sh/) via Homebrew: `brew install bun` (for development)
+
+#### Claude Code Setup
+
+Breev uses Claude Code to generate your daily summaries. Make sure it's installed and accessible:
+
+```bash
+# Install Claude Code (if not already installed)
+npm install -g @anthropic-ai/claude-code
+
+# Verify installation
+claude --version
+```
+
+> **Note:** The in-app generate button requires `claude` to be available at `~/.local/bin/claude`. If you installed it elsewhere, create a symlink:
+> ```bash
+> ln -s $(which claude) ~/.local/bin/claude
+> ```
 
 ### Development
 
@@ -72,30 +92,32 @@ On first launch, Breev will guide you through a brief onboarding process that:
 
 ### Settings
 
-Press `Cmd+,` (Mac) or `Ctrl+,` (Windows/Linux) to open settings. You can configure:
+Press `Cmd+,` to open settings. You can configure:
 - Daily reminder text (shown after your greeting)
 - Japanese vocabulary visibility
 - Russian vocabulary visibility
 
 Settings are stored in `~/.breev/settings.json`.
 
-### Populating Your Data
+### Generating Summaries
 
-Breev reads daily summaries from JSON files. To generate real summaries, you can:
+Breev reads daily summaries from JSON files. You have two ways to generate them:
 
-#### Option 1: Using Claude Code (Recommended)
+#### Option 1: In-App Generate Button (Recommended)
 
-Breev automatically installs the `/breev` command to Claude Code during onboarding. Simply run:
+Click the magic wand icon in the header to generate today's summary directly from the app. This runs Claude Code in the background and shows a timer while it works.
+
+#### Option 2: Using Claude Code CLI
+
+Breev automatically installs the `/breev` command to Claude Code during onboarding. Run it from your terminal:
 
 ```bash
-claude
-# Then run:
-/breev
+claude -p "Run /breev"
 ```
 
-This will pull data from your configured sources (email, WhatsApp, news feeds, etc.) and create a daily summary.
+Both methods pull data from your configured sources (email, WhatsApp, news feeds, etc.) and create a daily summary.
 
-#### Option 2: Manual JSON
+#### Option 3: Manual JSON
 
 Create JSON files in `~/.breev/summaries/` with the format `YYYY-MM-DD.json`:
 
@@ -206,3 +228,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Notes
+
+- The Tauri shell configuration in `src-tauri/capabilities/default.json` contains a hardcoded path to `claude`. You may need to update this path to match your local installation.
+- Settings containing email credentials are stored locally at `~/.breev/settings.json` and should never be committed.

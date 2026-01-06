@@ -7,20 +7,41 @@
     "core:default",
     "opener:default",
     "fs:default",
+    "shell:default",
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        { "name": "claude", "cmd": "/Users/choki/.local/bin/claude", "args": true },
+        { "name": "stdbuf", "cmd": "/opt/homebrew/bin/stdbuf", "args": true },
+        { "name": "bun", "cmd": "/opt/homebrew/bin/bun", "args": true }
+      ]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "claude", "cmd": "/Users/choki/.local/bin/claude", "args": true },
+        { "name": "stdbuf", "cmd": "/opt/homebrew/bin/stdbuf", "args": true },
+        { "name": "bun", "cmd": "/opt/homebrew/bin/bun", "args": true }
+      ]
+    },
     {
       "identifier": "fs:allow-exists",
       "allow": [
         { "path": "$HOME/.breev" },
-        { "path": "$HOME/.breev/**" },
+        { "path": "$HOME/.breev/*" },
+        { "path": "$HOME/.breev/**/*" },
+        { "path": "$HOME/.claude" },
         { "path": "$HOME/.claude/commands" },
-        { "path": "$HOME/.claude/commands/**" }
+        { "path": "$HOME/.claude/commands/**" },
+        { "path": "/opt/homebrew/bin/bun" }
       ]
     },
     {
       "identifier": "fs:allow-mkdir",
       "allow": [
         { "path": "$HOME/.breev" },
-        { "path": "$HOME/.breev/**" },
+        { "path": "$HOME/.breev/*" },
+        { "path": "$HOME/.breev/**/*" },
         { "path": "$HOME/.claude" },
         { "path": "$HOME/.claude/commands" }
       ]
@@ -28,7 +49,11 @@
     {
       "identifier": "fs:allow-write-text-file",
       "allow": [
-        { "path": "$HOME/.breev/**" },
+        { "path": "$HOME/.breev" },
+        { "path": "$HOME/.breev/*" },
+        { "path": "$HOME/.breev/**/*" },
+        { "path": "$HOME/.breev/.gitignore" },
+        { "path": "$HOME/.breev/scripts/.gitignore" },
         { "path": "$HOME/.claude/commands/breev.md" }
       ]
     },

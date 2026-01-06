@@ -17,9 +17,15 @@ Read the user's settings from `~/.breev/settings.json` to get email configuratio
 ```
 
 ### Step 2: Fetch Emails (if enabled)
-If `emailEnabled` is true in settings, connect to the IMAP server using the credentials from settings and fetch today's emails. Use the `emailHost`, `emailPort`, `emailAddress`, and `emailPassword` fields.
+If `emailEnabled` is true in settings, run the email fetching script:
 
-Parse the emails and summarize each one briefly. If email is not enabled or credentials are missing, skip this step and use an empty array for emails.
+```bash
+cd ~/.breev/scripts && bun run fetch-emails.ts
+```
+
+If the scripts directory doesn't have node_modules installed yet, run `bun install` first.
+
+The script will output a JSON array of emails. Parse and summarize each one briefly. If email is not enabled or credentials are missing, the script returns an empty array.
 
 ### Step 3: Fetch WhatsApp Messages (Chrome must be logged in)
 Use browser automation to read WhatsApp messages:

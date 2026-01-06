@@ -3,12 +3,20 @@
   import { goto } from "$app/navigation";
   import { mkdir, writeTextFile, exists } from "@tauri-apps/plugin-fs";
   import { homeDir, join } from "@tauri-apps/api/path";
+  import { Command } from "@tauri-apps/plugin-shell";
 
   let currentStep = $state(0);
   let isSettingUp = $state(false);
   let setupComplete = $state(false);
   let setupError = $state("");
   let mounted = $state(false);
+
+  // Prerequisites state
+  let isCheckingPrereqs = $state(false);
+  let prereqsChecked = $state(false);
+  let bunInstalled = $state(false);
+  let bunVersion = $state("");
+  let prereqError = $state("");
 
   const features = [
     {
@@ -42,6 +50,44 @@
       icon: "chat"
     }
   ];
+
+  async function checkPrerequisites() {
+    isCheckingPrereqs = true;
+    prereqError = "";
+    bunInstalled = false;
+    bunVersion = "";
+
+    try {
+      // Try to run bun --version directly
+      const result = await Command.create("bun", ["--version"]).execute();
+      console.log("Bun check result:", result);
+      if (result.code === 0) {
+        bunInstalled = true;
+        bunVersion = result.stdout.trim();
+      } else {
+        console.error("Bun returned non-zero:", result.stderr);
+      }
+    } catch (e) {
+      // bun not found or failed to run
+      console.error("Bun check failed:", e);
+      prereqError = String(e);
+      bunInstalled = false;
+    }
+
+    prereqsChecked = true;
+    isCheckingPrereqs = false;
+  }
+
+  async function runBunInstall(scriptsPath: string) {
+    try {
+      const result = await Command.create("bun", ["install", "--cwd", scriptsPath]).execute();
+      if (result.code !== 0) {
+        throw new Error(result.stderr || "bun install failed");
+      }
+    } catch (e) {
+      throw new Error(`Failed to install dependencies: ${e}`);
+    }
+  }
 
   function getSampleData(): string {
     const today = new Date().toISOString().split("T")[0];
@@ -97,6 +143,7 @@
       const home = await homeDir();
       const basePath = await join(home, ".breev");
       const summariesPath = await join(basePath, "summaries");
+      const scriptsPath = await join(basePath, "scripts");
 
       // Create directories
       const baseExists = await exists(basePath);
@@ -109,6 +156,11 @@
         await mkdir(summariesPath, { recursive: true });
       }
 
+      const scriptsExists = await exists(scriptsPath);
+      if (!scriptsExists) {
+        await mkdir(scriptsPath, { recursive: true });
+      }
+
       // Create sample data file
       const today = new Date().toISOString().split("T")[0];
       const sampleFilePath = await join(summariesPath, `${today}.json`);
@@ -116,6 +168,14 @@
       const fileExists = await exists(sampleFilePath);
       if (!fileExists) {
         await writeTextFile(sampleFilePath, getSampleData());
+      }
+
+      // Install scripts and root files
+      await installScripts(basePath, scriptsPath);
+
+      // Run bun install to install dependencies
+      if (bunInstalled) {
+        await runBunInstall(scriptsPath);
       }
 
       // Install Claude Code command
@@ -127,6 +187,31 @@
       setupError = `Setup failed: ${e}`;
       isSettingUp = false;
     }
+  }
+
+  async function installScripts(basePath: string, scriptsPath: string) {
+    // Script files to install
+    const scriptFiles = [
+      "fetch-emails.ts",
+      "package.json",
+      "tsconfig.json",
+      "index.ts",
+      ".gitignore"
+    ];
+
+    // Install each script file
+    for (const file of scriptFiles) {
+      const response = await fetch(`/scripts/${file}`);
+      const content = await response.text();
+      const filePath = await join(scriptsPath, file);
+      await writeTextFile(filePath, content);
+    }
+
+    // Install .gitignore (fetch as breev.gitignore to avoid static serving issues)
+    const gitignoreResponse = await fetch("/breev.gitignore");
+    const gitignoreContent = await gitignoreResponse.text();
+    const gitignorePath = await join(basePath, ".gitignore");
+    await writeTextFile(gitignorePath, gitignoreContent);
   }
 
   async function installClaudeCommand(home: string) {
@@ -157,9 +242,11 @@
   }
 
   function nextStep() {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       currentStep++;
       if (currentStep === 2) {
+        checkPrerequisites();
+      } else if (currentStep === 3) {
         setupDirectories();
       }
     }
@@ -168,6 +255,15 @@
   function prevStep() {
     if (currentStep > 0) {
       currentStep--;
+      // Reset states when going back
+      if (currentStep === 1) {
+        prereqsChecked = false;
+        isCheckingPrereqs = false;
+      } else if (currentStep === 2) {
+        setupComplete = false;
+        isSettingUp = false;
+        setupError = "";
+      }
     }
   }
 
@@ -184,7 +280,7 @@
   <div class="content">
     <!-- Step indicators -->
     <div class="steps">
-      {#each [0, 1, 2, 3] as step}
+      {#each [0, 1, 2, 3, 4] as step}
         <div
           class="step-dot"
           class:active={currentStep === step}
@@ -270,8 +366,82 @@
       </div>
     {/if}
 
-    <!-- Step 2: Setup -->
+    <!-- Step 2: Prerequisites -->
     {#if currentStep === 2}
+      <div class="step step-prereqs">
+        <h2>Checking Prerequisites</h2>
+        <p class="subtitle">Making sure everything is ready</p>
+
+        <div class="prereq-list">
+          <div class="prereq-item">
+            <div class="prereq-status">
+              {#if isCheckingPrereqs}
+                <div class="spinner-small"></div>
+              {:else if bunInstalled}
+                <div class="prereq-check">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+              {:else if prereqsChecked}
+                <div class="prereq-x">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </div>
+              {:else}
+                <div class="prereq-pending"></div>
+              {/if}
+            </div>
+            <div class="prereq-info">
+              <span class="prereq-name">Bun Runtime</span>
+              {#if isCheckingPrereqs}
+                <span class="prereq-detail">Checking installation...</span>
+              {:else if bunInstalled}
+                <span class="prereq-detail prereq-success">Installed (v{bunVersion})</span>
+              {:else if prereqsChecked}
+                <span class="prereq-detail prereq-error">Not installed</span>
+              {:else}
+                <span class="prereq-detail">Required for email scripts</span>
+              {/if}
+            </div>
+          </div>
+        </div>
+
+        {#if prereqsChecked && !bunInstalled}
+          <div class="prereq-instructions">
+            <p>Bun is required to run email fetching scripts. Please install it through Homebrew:</p>
+            <div class="code-block">
+              <code>brew install bun</code>
+            </div>
+            <p class="prereq-note">After installing, restart this app and try again.</p>
+            {#if prereqError}
+              <p class="prereq-error-detail">Error: {prereqError}</p>
+            {/if}
+          </div>
+        {/if}
+
+        <div class="nav-buttons">
+          <button class="secondary-btn" onclick={prevStep}>Back</button>
+          {#if prereqsChecked && !bunInstalled}
+            <button class="secondary-btn" onclick={checkPrerequisites}>
+              Re-check
+            </button>
+          {/if}
+          <button
+            class="primary-btn"
+            onclick={nextStep}
+            disabled={isCheckingPrereqs || !bunInstalled}
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    {/if}
+
+    <!-- Step 3: Setup -->
+    {#if currentStep === 3}
       <div class="step step-setup">
         <h2>Setting Up</h2>
         <p class="subtitle">Creating your local data directory</p>
@@ -296,6 +466,8 @@
             <div class="setup-details">
               <code>~/.breev/summaries/</code>
               <span>Sample data created for today</span>
+              <code>~/.breev/scripts/</code>
+              <span>Scripts installed, dependencies ready</span>
               <code>~/.claude/commands/breev.md</code>
               <span>Claude Code command installed</span>
             </div>
@@ -315,8 +487,8 @@
       </div>
     {/if}
 
-    <!-- Step 3: Complete -->
-    {#if currentStep === 3}
+    <!-- Step 4: Complete -->
+    {#if currentStep === 4}
       <div class="step step-complete">
         <div class="complete-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -541,6 +713,145 @@
     line-height: 1.4;
   }
 
+  /* Step: Prerequisites */
+  .step-prereqs {
+    text-align: center;
+  }
+
+  .prereq-list {
+    border: 1px solid #e5e5e5;
+    margin-bottom: 24px;
+  }
+
+  .prereq-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .prereq-item:last-child {
+    border-bottom: none;
+  }
+
+  .prereq-status {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .spinner-small {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #e5e5e5;
+    border-top-color: #1a1a1a;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .prereq-check {
+    width: 28px;
+    height: 28px;
+    border: 2px solid #1a1a1a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scaleIn 0.3s ease;
+  }
+
+  .prereq-check svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .prereq-x {
+    width: 28px;
+    height: 28px;
+    border: 2px solid #cc0000;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cc0000;
+    animation: scaleIn 0.3s ease;
+  }
+
+  .prereq-x svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .prereq-pending {
+    width: 28px;
+    height: 28px;
+    border: 2px solid #e5e5e5;
+    border-radius: 50%;
+  }
+
+  .prereq-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .prereq-name {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .prereq-detail {
+    font-size: 0.8125rem;
+    color: #888;
+  }
+
+  .prereq-success {
+    color: #1a1a1a;
+  }
+
+  .prereq-error {
+    color: #cc0000;
+  }
+
+  .prereq-instructions {
+    text-align: left;
+    padding: 20px 24px;
+    background: #fff8e6;
+    border: 1px solid #e6d9a8;
+    margin-bottom: 24px;
+  }
+
+  .prereq-instructions p {
+    font-size: 0.9375rem;
+    color: #444;
+    margin-bottom: 12px;
+  }
+
+  .prereq-instructions .code-block {
+    margin-bottom: 12px;
+  }
+
+  .prereq-note {
+    font-size: 0.8125rem;
+    color: #888;
+    margin-bottom: 0 !important;
+  }
+
+  .prereq-error-detail {
+    font-size: 0.75rem;
+    color: #cc0000;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    margin-top: 12px;
+    padding: 8px;
+    background: #fff0f0;
+    word-break: break-all;
+  }
+
   /* Step: Setup */
   .step-setup {
     text-align: center;
@@ -666,13 +977,6 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 12px;
-  }
-
-  .next-steps p {
-    font-size: 0.9375rem;
-    color: #444;
-    line-height: 1.7;
-    margin-bottom: 16px;
   }
 
   .next-steps code {
