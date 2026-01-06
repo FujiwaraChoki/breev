@@ -1,5 +1,0 @@
-#!/bin/bash
-# Life Updater - Trigger script
-# Calls Claude Code to run the /life-update command
-
-claude -p "Run /life-update"

@@ -67,7 +67,7 @@
           title: "Getting Started with Breev",
           source: "Breev Docs",
           favicon_url: "https://www.google.com/favicon.ico",
-          summary: "Breev aggregates your daily information into a beautiful, scannable format. Configure your data sources by running the /life-update command with Claude Code to populate your summaries.",
+          summary: "Breev aggregates your daily information into a beautiful, scannable format. Run the /breev command in Claude Code to generate your daily summaries.",
           url: "https://github.com",
           category: "tech"
         }
@@ -118,12 +118,37 @@
         await writeTextFile(sampleFilePath, getSampleData());
       }
 
+      // Install Claude Code command
+      await installClaudeCommand(home);
+
       setupComplete = true;
       isSettingUp = false;
     } catch (e) {
       setupError = `Setup failed: ${e}`;
       isSettingUp = false;
     }
+  }
+
+  async function installClaudeCommand(home: string) {
+    const claudePath = await join(home, ".claude");
+    const commandsPath = await join(claudePath, "commands");
+    const commandFilePath = await join(commandsPath, "breev.md");
+
+    // Create .claude/commands directory if it doesn't exist
+    const claudeExists = await exists(claudePath);
+    if (!claudeExists) {
+      await mkdir(claudePath, { recursive: true });
+    }
+
+    const commandsExists = await exists(commandsPath);
+    if (!commandsExists) {
+      await mkdir(commandsPath, { recursive: true });
+    }
+
+    // Fetch the command content from static and write it
+    const response = await fetch("/breev.md");
+    const commandContent = await response.text();
+    await writeTextFile(commandFilePath, commandContent);
   }
 
   function completeOnboarding() {
@@ -271,6 +296,8 @@
             <div class="setup-details">
               <code>~/.breev/summaries/</code>
               <span>Sample data created for today</span>
+              <code>~/.claude/commands/breev.md</code>
+              <span>Claude Code command installed</span>
             </div>
           {/if}
         </div>
@@ -301,16 +328,25 @@
         <p class="subtitle">Your daily briefing awaits</p>
 
         <div class="next-steps">
-          <h3>Populating Your Data</h3>
-          <p>
-            To generate real summaries, run the <code>/life-update</code> skill
-            in Claude Code. It will pull data from your configured sources and
-            create daily summaries.
-          </p>
+          <h3>Before You Start</h3>
+          <div class="checklist">
+            <div class="checklist-item">
+              <span class="check-icon">1</span>
+              <span>Open <strong>Settings</strong> (Cmd+,) and configure your email credentials</span>
+            </div>
+            <div class="checklist-item">
+              <span class="check-icon">2</span>
+              <span>Make sure you're logged into <strong>WhatsApp Web</strong> in Chrome</span>
+            </div>
+            <div class="checklist-item">
+              <span class="check-icon">3</span>
+              <span>Run <code>/breev</code> in Claude Code to generate your daily summary</span>
+            </div>
+          </div>
           <div class="code-block">
             <code>claude</code>
             <span class="arrow">&rarr;</span>
-            <code>/life-update</code>
+            <code>/breev</code>
           </div>
         </div>
 
@@ -663,6 +699,42 @@
 
   .arrow {
     color: #888;
+  }
+
+  .checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .checklist-item code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 0.875rem;
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .check-icon {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #1a1a1a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
   }
 
   /* Buttons */

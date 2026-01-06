@@ -85,12 +85,12 @@ Breev reads daily summaries from JSON files. To generate real summaries, you can
 
 #### Option 1: Using Claude Code (Recommended)
 
-If you have [Claude Code](https://claude.ai/claude-code) installed with the `/life-update` skill:
+Breev automatically installs the `/breev` command to Claude Code during onboarding. Simply run:
 
 ```bash
 claude
 # Then run:
-/life-update
+/breev
 ```
 
 This will pull data from your configured sources (email, WhatsApp, news feeds, etc.) and create a daily summary.

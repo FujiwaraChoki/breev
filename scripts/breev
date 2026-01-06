@@ -1,0 +1,5 @@
+#!/bin/bash
+# Breev - Trigger script
+# Calls Claude Code to run the /breev command
+
+claude -p "Run /breev"

@@ -5,7 +5,7 @@ Thanks for your interest in contributing to Breev! This document outlines the pr
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/breev.git`
+2. Clone your fork: `git clone https://github.com/FujiwaraChoki/breev.git`
 3. Install dependencies: `bun install`
 4. Run the development server: `bun run tauri dev`
 

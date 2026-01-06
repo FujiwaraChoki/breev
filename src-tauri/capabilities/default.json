@@ -11,20 +11,25 @@
       "identifier": "fs:allow-exists",
       "allow": [
         { "path": "$HOME/.breev" },
-        { "path": "$HOME/.breev/**" }
+        { "path": "$HOME/.breev/**" },
+        { "path": "$HOME/.claude/commands" },
+        { "path": "$HOME/.claude/commands/**" }
       ]
     },
     {
       "identifier": "fs:allow-mkdir",
       "allow": [
         { "path": "$HOME/.breev" },
-        { "path": "$HOME/.breev/**" }
+        { "path": "$HOME/.breev/**" },
+        { "path": "$HOME/.claude" },
+        { "path": "$HOME/.claude/commands" }
       ]
     },
     {
       "identifier": "fs:allow-write-text-file",
       "allow": [
-        { "path": "$HOME/.breev/**" }
+        { "path": "$HOME/.breev/**" },
+        { "path": "$HOME/.claude/commands/breev.md" }
       ]
     },
     {

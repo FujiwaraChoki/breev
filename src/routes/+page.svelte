@@ -13,6 +13,11 @@
     dreamReminderText: "",
     showJapaneseWord: true,
     showRussianWord: true,
+    emailEnabled: false,
+    emailHost: "imap.gmail.com",
+    emailPort: 993,
+    emailAddress: "",
+    emailPassword: "",
   });
 
   interface Email {
@@ -166,7 +171,7 @@
         await loadSummary(dates[0]);
       }
     } catch (e) {
-      error = "No summaries found yet. Run /life-update to generate your first summary.";
+      error = "No summaries found yet. Run /breev in Claude Code to generate your first summary.";
     } finally {
       loading = false;
     }
