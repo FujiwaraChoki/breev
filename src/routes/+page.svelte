@@ -681,16 +681,28 @@
   select {
     font-family: inherit;
     font-size: 0.875rem;
-    background: transparent;
-    border: none;
+    background: #faf6f1;
+    border: 1px solid #d4d0cb;
+    border-radius: 6px;
     color: #1a1a1a;
     cursor: pointer;
-    padding: 4px 8px;
-    border-bottom: 1px solid #1a1a1a;
+    padding: 8px 32px 8px 14px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%231a1a1a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  select:hover {
+    border-color: #1a1a1a;
   }
 
   select:focus {
     outline: none;
+    border-color: #1a1a1a;
+    box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.08);
   }
 
   section {
