@@ -7,6 +7,7 @@
   import confetti from "canvas-confetti";
   import Settings, { type AppSettings } from "$lib/Settings.svelte";
   import MagicWandSparkle from "$lib/MagicWandSparkle.svelte";
+  import { checkForUpdates } from "$lib/updater";
 
   let appReady = $state(false);
   let settingsOpen = $state(false);
@@ -287,6 +288,7 @@
     appReady = true;
     loadAvailableDates();
     loadSettings();
+    checkForUpdates();
 
     // Celebration confetti on app open
     confetti({

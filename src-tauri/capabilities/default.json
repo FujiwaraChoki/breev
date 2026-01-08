@@ -8,6 +8,9 @@
     "opener:default",
     "fs:default",
     "shell:default",
+    "updater:default",
+    "process:allow-restart",
+    "dialog:default",
     {
       "identifier": "shell:allow-spawn",
       "allow": [
